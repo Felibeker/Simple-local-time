@@ -190,15 +190,32 @@
     const qs = new URLSearchParams(location.search);
     const viewerZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
-    // Fill dropdown with all timezones
-    const zones = (Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : [viewerZone, 'UTC', 'America/Los_Angeles', 'Europe/London']);
-    zones.forEach(z => {
-      const opt = document.createElement('option');
-      opt.value = z; opt.textContent = z;
-      tzSelect.appendChild(opt);
-    });
-    tzSelect.value = qs.get('tz') || viewerZone;
+   // Fill the dropdown with a fallback if needed
+let zones;
+if (typeof Intl.supportedValuesOf === "function") {
+  zones = Intl.supportedValuesOf('timeZone');
+} else {
+  // Fallback list (common zones)
+  zones = [
+    "UTC",
+    "America/Los_Angeles",
+    "America/New_York",
+    "Europe/London",
+    "Europe/Berlin",
+    "Europe/Moscow",
+    "Asia/Tokyo",
+    "Asia/Shanghai",
+    "Asia/Kolkata",
+    "Australia/Sydney"
+  ];
+}
 
+zones.forEach(z => {
+  const opt = document.createElement('option');
+  opt.value = z;
+  opt.textContent = z;
+  tzSelect.appendChild(opt);
+});
     // Prefill date/time if from URL
     const urlT = qs.get('t');
     if (urlT) {
