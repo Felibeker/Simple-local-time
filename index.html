@@ -7,42 +7,52 @@
   <style>
     :root { --bg:#0f1220; --fg:#e8ecf1; --muted:#93a0b1; --card:#171a2b; }
     * { box-sizing:border-box }
-    body{margin:0;min-height:100svh;display:grid;place-items:center;background:#0f1220;color:var(--fg);
-         font:500 16px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    .wrap{width:min(720px,92vw);background:#171a2b;border:1px solid #20263e;border-radius:20px;padding:28px}
-    .title{margin:0 0 6px;font-weight:700;letter-spacing:.02em}
-    .clock{font-size:clamp(36px,9vw,72px);font-weight:800;margin:10px 0 6px}
-    .date{font-size:clamp(14px,2.5vw,18px);color:var(--muted);margin:0 0 14px}
-    .row{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
-    .pill{padding:6px 10px;border-radius:999px;background:#233056;color:#dfe8f6;font-size:12px}
-    .hint{margin-top:16px;font-size:12px;color:#a6b2c6}
-    .section{padding:16px;border-radius:14px;background:#121528;margin-top:12px}
-    .strong{font-weight:700}
+    body{
+      margin:0; min-height:100svh; display:grid; place-items:center;
+      background: radial-gradient(1000px 700px at 50% -10%, #1a1f35, var(--bg));
+      color:var(--fg); font:500 16px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial
+    }
+    .wrap{ width:min(760px,92vw); background:var(--card); border:1px solid #232a47; border-radius:20px; padding:28px; box-shadow:0 18px 50px rgba(0,0,0,.35) }
+    .title{ margin:0 0 12px; font-weight:800; letter-spacing:.02em; font-size:clamp(22px,4vw,28px) }
+    .section{ padding:16px; border-radius:14px; background:#121528; margin-top:12px }
+    .clock{ font-size:clamp(36px,9vw,72px); font-weight:800; margin:10px 0 6px }
+    .date{ font-size:clamp(14px,2.5vw,18px); color:var(--muted); margin:0 0 14px }
+    .row{ display:flex; gap:10px; align-items:baseline; flex-wrap:wrap }
+    .pill{ padding:6px 10px; border-radius:999px; background:#233056; color:#dfe8f6; font-size:12px }
+    .strong{ font-weight:700 }
+    .hint{ margin-top:10px; font-size:12px; color:#a6b2c6 }
+    input, select, button{
+      padding:10px 12px; border-radius:10px; border:1px solid #2b3455;
+      background:#0f1220; color:#e8ecf1; font:600 14px/1.2 inherit
+    }
+    button{ background:#2a3a6a; cursor:pointer }
+    button:active{ transform:translateY(1px) }
+    label{ display:flex; flex-direction:column; gap:6px }
   </style>
-  <!-- DST-safe timezone math -->
   <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
 </head>
 <body>
   <main class="wrap" role="main">
     <h1 class="title" id="modeTitle">Your Local Time</h1>
 
-    <!-- Date/time picker UI -->
-<div class="section" id="picker">
-  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end">
-    <label>
-      <div class="strong">Date & time</div>
-      <input id="dtInput" type="datetime-local" style="padding:8px; border-radius:8px; border:1px solid #2b3455; background:#0f1220; color:#e8ecf1">
-    </label>
-    <label>
-      <div class="strong">Source timezone</div>
-      <select id="tzSelect" style="padding:8px; border-radius:8px; border:1px solid #2b3455; background:#0f1220; color:#e8ecf1; min-width:220px"></select>
-    </label>
-    <button id="showBtn">Show</button>
-    <button id="copyBtn" title="Copy a link with t & tz">Copy share link</button>
-  </div>
-  <div class="hint">Pick when the event happens in the selected timezone. We’ll show it in <span class="strong">your</span> time and give you a shareable link.</div>
-</div>
+    <!-- Picker (choose date/time and source timezone) -->
+    <div class="section" id="picker">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:end">
+        <label>
+          <span class="strong">Date & time</span>
+          <input id="dtInput" type="datetime-local">
+        </label>
+        <label>
+          <span class="strong">Source timezone</span>
+          <select id="tzSelect" style="min-width:240px"></select>
+        </label>
+        <button id="showBtn">Show</button>
+        <button id="copyBtn" title="Copy a link with t & tz">Copy share link</button>
+      </div>
+      <div class="hint">Pick when the event happens in the selected timezone. We’ll show it in <span class="strong">your</span> time and give you a shareable link.</div>
+    </div>
 
+    <!-- Live clock (used when no ?t= in URL) -->
     <div class="section" id="liveSection" hidden>
       <div class="clock" id="clock">--:--:--</div>
       <div class="date" id="date">Loading…</div>
@@ -52,128 +62,159 @@
       </div>
     </div>
 
+    <!-- Event conversion view (used when ?t= is present) -->
     <div class="section" id="eventSection" hidden>
-      <div class="strong" id="eventLabel">Event time in your timezone:</div>
+      <div class="strong">Event time in your timezone:</div>
       <div class="clock" id="eventLocal">--:--</div>
       <div class="date" id="eventLocalDate">Loading…</div>
-
       <div class="row" style="margin-top:10px">
         <span class="pill" id="viewerZone"></span>
         <span class="pill" id="sourceZone"></span>
         <span class="pill" id="countdown"></span>
       </div>
-
       <div class="hint" id="shareHint"></div>
     </div>
 
-    <div class="hint">
-      Tip: add <code>?t=2025-08-10T12:00&amp;tz=America/Los_Angeles</code> to the URL to convert that time for everyone.
-    </div>
+    <div class="hint">Tip: add <code>?t=2025-08-10T12:00&amp;tz=America/Los_Angeles</code> to the URL to convert that time for everyone.</div>
   </main>
 
   <script>
     (function () {
       const { DateTime } = luxon;
-
-      // --- helpers ---
       const qs = new URLSearchParams(location.search);
-      const viewerZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local';
+      const viewerZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
-      function fmtOffset(dt) {
-        const m = dt.offset; // minutes
-        const sign = m >= 0 ? '+' : '-';
-        const hh = String(Math.trunc(Math.abs(m)/60)).padStart(2, '0');
-        const mm = String(Math.abs(m)%60).padStart(2, '0');
-        return `UTC${sign}${hh}:${mm}`;
+      // ---------- UI refs ----------
+      const tzSelect = document.getElementById('tzSelect');
+      const dtInput  = document.getElementById('dtInput');
+      const showBtn  = document.getElementById('showBtn');
+      const copyBtn  = document.getElementById('copyBtn');
+
+      // ---------- Populate timezone dropdown (fallback for Telegram WebView) ----------
+      let zones;
+      if (typeof Intl.supportedValuesOf === "function") {
+        zones = Intl.supportedValuesOf('timeZone');
+      } else {
+        zones = [
+          "UTC","America/Los_Angeles","America/Denver","America/Chicago","America/New_York",
+          "America/Sao_Paulo","Europe/London","Europe/Berlin","Europe/Madrid","Europe/Paris",
+          "Europe/Moscow","Africa/Johannesburg","Asia/Dubai","Asia/Kolkata","Asia/Bangkok",
+          "Asia/Shanghai","Asia/Tokyo","Australia/Sydney","Pacific/Auckland"
+        ];
+      }
+      zones.forEach(z => {
+        const opt = document.createElement('option');
+        opt.value = z; opt.textContent = z;
+        tzSelect.appendChild(opt);
+      });
+      tzSelect.value = zones.includes(qs.get('tz')) ? qs.get('tz') : (zones.includes(viewerZone) ? viewerZone : 'UTC');
+
+      // Prefill date/time input from URL if present
+      const urlT = qs.get('t');
+      if (urlT) {
+        const srcTZ = qs.get('tz') || tzSelect.value;
+        const parsed = DateTime.fromISO(urlT, { zone: srcTZ }).isValid
+          ? DateTime.fromISO(urlT, { zone: srcTZ })
+          : DateTime.fromRFC2822(urlT, { zone: srcTZ });
+        if (parsed.isValid) dtInput.value = parsed.toFormat("yyyy-LL-dd'T'HH:mm");
       }
 
-      // --- live clock mode (no t param) ---
+      // ---------- Live clock mode ----------
       function startLiveClock(){
         document.getElementById('modeTitle').textContent = 'Your Local Time';
         document.getElementById('liveSection').hidden = false;
-
         const clockEl = document.getElementById('clock');
         const dateEl  = document.getElementById('date');
         const tzEl    = document.getElementById('tz');
         const offEl   = document.getElementById('offset');
 
+        function fmtOffset(dt) {
+          const m = dt.offset, sign = m>=0?'+':'-';
+          const hh = String(Math.trunc(Math.abs(m)/60)).padStart(2,'0');
+          const mm = String(Math.abs(m)%60).padStart(2,'0');
+          return `UTC${sign}${hh}:${mm}`;
+        }
         function tick(){
           const now = DateTime.now();
           clockEl.textContent = now.toFormat('HH:mm:ss');
-          dateEl.textContent = now.toFormat('cccc, LLLL d, yyyy \'at\' ZZZZ');
-          tzEl.textContent = viewerZone;
-          offEl.textContent = fmtOffset(now);
+          dateEl.textContent  = now.toFormat("cccc, LLLL d, yyyy 'at' ZZZZ");
+          tzEl.textContent    = viewerZone;
+          offEl.textContent   = fmtOffset(now);
         }
-        tick();
-        setInterval(tick, 1000);
+        tick(); setInterval(tick, 1000);
       }
 
-      // --- event conversion mode (t param present) ---
+      // ---------- Event conversion mode ----------
       function startEventMode(){
         document.getElementById('modeTitle').textContent = 'Event Time (converted for you)';
         document.getElementById('eventSection').hidden = false;
 
-        const tRaw  = qs.get('t');       // time string (ISO preferred)
-        const srcTZ = qs.get('tz');      // IANA zone (e.g., America/Los_Angeles)
-        const fmt   = qs.get('fmt');     // optional parse format (e.g., M/d/yyyy h:mm a)
+        const tRaw  = qs.get('t');
+        const srcTZ = qs.get('tz') || tzSelect.value;
 
-        // Parse source datetime:
-        let src;
-        if (!tRaw) { startLiveClock(); return; }
-
-        if (fmt && srcTZ) {
-          // parse with custom format + zone
-          src = DateTime.fromFormat(tRaw, fmt, { zone: srcTZ });
-        } else if (srcTZ) {
-          // try ISO-like parse but assign zone
-          // if tRaw has offset or Z, Luxon will honor that and srcTZ is ignored
-          src = DateTime.fromISO(tRaw, { zone: srcTZ });
-          if (!src.isValid) src = DateTime.fromRFC2822(tRaw, { zone: srcTZ });
-        } else {
-          // no zone provided; expect ISO with offset/Z or treat as viewer local
-          src = DateTime.fromISO(tRaw);
-          if (!src.isValid) src = DateTime.fromRFC2822(tRaw);
-        }
-
+        let src = DateTime.fromISO(tRaw, { zone: srcTZ });
+        if (!src.isValid) src = DateTime.fromRFC2822(tRaw, { zone: srcTZ });
         if (!src.isValid) {
           document.getElementById('eventLocal').textContent = 'Invalid time';
-          document.getElementById('eventLocalDate').textContent = 'Check t / tz / fmt in URL';
+          document.getElementById('eventLocalDate').textContent = 'Check t/tz in URL';
           return;
         }
 
-        // Convert to viewer's zone
         const local = src.setZone(viewerZone);
-
-        // Render
         document.getElementById('eventLocal').textContent     = local.toFormat('HH:mm:ss');
         document.getElementById('eventLocalDate').textContent = local.toFormat('cccc, LLLL d, yyyy (ZZZZ)');
         document.getElementById('viewerZone').textContent     = `You: ${viewerZone}`;
         document.getElementById('sourceZone').textContent     = `Source: ${src.zoneName}`;
 
-        // Countdown (updates every second)
         function updateCountdown(){
           const diff = src.diffNow(['days','hours','minutes','seconds']);
-          const sign = diff.toMillis() < 0 ? 'ago' : '';
+          const past = diff.toMillis() < 0;
           const d = Math.abs(Math.trunc(diff.days));
           const h = Math.abs(diff.hours);
           const m = Math.abs(diff.minutes);
           const s = Math.abs(Math.trunc(diff.seconds));
           document.getElementById('countdown').textContent =
-            `${sign?'' : 'in '}${d}d ${h}h ${m}m ${s}s${sign?' ago':''}`;
+            (past ? '' : 'in ') + `${d}d ${h}h ${m}m ${s}s` + (past ? ' ago' : '');
         }
-        updateCountdown();
-        setInterval(updateCountdown, 1000);
+        updateCountdown(); setInterval(updateCountdown, 1000);
 
-        // Shareable link hint
-        const url = new URL(location.href);
+        const u = new URL(location.href);
         document.getElementById('shareHint').innerHTML =
-          `Share this link so everyone sees <span class="strong">${local.toFormat('HH:mm, cccc LLL d')}</span> in their own time: <br><code>${url.href}</code>`;
+          `Share this link so everyone sees their local time: <br><code>${u.href}</code>`;
       }
 
-      // Detect mode
+      // ---------- Picker actions ----------
+      function setQueryAndReload(dtISO, zone){
+        const u = new URL(location.href);
+        u.searchParams.set('t', dtISO);
+        u.searchParams.set('tz', zone);
+        location.href = u; // reload so event mode renders cleanly
+      }
+
+      document.getElementById('showBtn').addEventListener('click', () => {
+        if (!dtInput.value) { alert('Choose date & time'); return; }
+        const zone = tzSelect.value || 'UTC';
+        const src  = DateTime.fromFormat(dtInput.value, "yyyy-LL-dd'T'HH:mm", { zone });
+        if (!src.isValid) { alert('Invalid date/time'); return; }
+        setQueryAndReload(src.toISO({ suppressSeconds:true, suppressMilliseconds:true }), zone);
+      });
+
+      document.getElementById('copyBtn').addEventListener('click', async () => {
+        if (!dtInput.value) { alert('Pick a date/time first'); return; }
+        const zone = tzSelect.value || 'UTC';
+        const src  = DateTime.fromFormat(dtInput.value, "yyyy-LL-dd'T'HH:mm", { zone });
+        if (!src.isValid) { alert('Invalid date/time'); return; }
+        const u = new URL(location.href);
+        u.searchParams.set('t', src.toISO({ suppressSeconds:true, suppressMilliseconds:true }));
+        u.searchParams.set('tz', zone);
+        try { await navigator.clipboard.writeText(u.href); alert('Link copied ✅'); }
+        catch { prompt('Copy this link:', u.href); }
+      });
+
+      // ---------- Decide which view to show ----------
       if (qs.has('t')) startEventMode(); else startLiveClock();
 
-      // Optional: adjust to Telegram theme when used as a Web App
+      // ---------- Telegram theme support ----------
       if (window.Telegram && Telegram.WebApp) {
         Telegram.WebApp.expand();
         const th = Telegram.WebApp.themeParams;
@@ -181,79 +222,6 @@
         document.documentElement.style.setProperty('--fg', th.text_color || '#e8ecf1');
         document.documentElement.style.setProperty('--muted', th.hint_color || '#93a0b1');
         document.documentElement.style.setProperty('--card', th.secondary_bg_color || '#171a2b');
-
-            // ---- Picker functionality ----
-    const tzSelect = document.getElementById('tzSelect');
-    const dtInput  = document.getElementById('dtInput');
-    const showBtn  = document.getElementById('showBtn');
-    const copyBtn  = document.getElementById('copyBtn');
-    const qs = new URLSearchParams(location.search);
-    const viewerZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-
-   // Fill the dropdown with a fallback if needed
-let zones;
-if (typeof Intl.supportedValuesOf === "function") {
-  zones = Intl.supportedValuesOf('timeZone');
-} else {
-  // Fallback list (common zones)
-  zones = [
-    "UTC",
-    "America/Los_Angeles",
-    "America/New_York",
-    "Europe/London",
-    "Europe/Berlin",
-    "Europe/Moscow",
-    "Asia/Tokyo",
-    "Asia/Shanghai",
-    "Asia/Kolkata",
-    "Australia/Sydney"
-  ];
-}
-
-zones.forEach(z => {
-  const opt = document.createElement('option');
-  opt.value = z;
-  opt.textContent = z;
-  tzSelect.appendChild(opt);
-});
-    // Prefill date/time if from URL
-    const urlT = qs.get('t');
-    if (urlT) {
-      const srcTZ = qs.get('tz') || viewerZone;
-      const src = luxon.DateTime.fromISO(urlT, { zone: srcTZ });
-      if (src.isValid) {
-        dtInput.value = src.toFormat("yyyy-LL-dd'T'HH:mm");
-        tzSelect.value = srcTZ;
-      }
-    }
-
-    function setQueryAndRender(dtISO, zone) {
-      const u = new URL(location.href);
-      u.searchParams.set('t', dtISO);
-      u.searchParams.set('tz', zone);
-      location.href = u; // reload with new params
-    }
-
-    showBtn.addEventListener('click', () => {
-      if (!dtInput.value) { alert('Choose date & time'); return; }
-      const zone = tzSelect.value || 'UTC';
-      const src = luxon.DateTime.fromFormat(dtInput.value, "yyyy-LL-dd'T'HH:mm", { zone });
-      if (!src.isValid) { alert('Invalid date/time'); return; }
-      setQueryAndRender(src.toISO({ suppressSeconds:true, suppressMilliseconds:true }), zone);
-    });
-
-    copyBtn.addEventListener('click', async () => {
-      if (!dtInput.value) { alert('Pick a date/time first'); return; }
-      const zone = tzSelect.value || 'UTC';
-      const src = luxon.DateTime.fromFormat(dtInput.value, "yyyy-LL-dd'T'HH:mm", { zone });
-      if (!src.isValid) { alert('Invalid date/time'); return; }
-      const u = new URL(location.href);
-      u.searchParams.set('t', src.toISO({ suppressSeconds:true, suppressMilliseconds:true }));
-      u.searchParams.set('tz', zone);
-      try { await navigator.clipboard.writeText(u.href); alert('Link copied ✅'); }
-      catch { prompt('Copy this link:', u.href); }
-    });
-
       }
     })();
   </script>
